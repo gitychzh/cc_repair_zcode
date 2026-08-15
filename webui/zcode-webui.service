@@ -1,0 +1,15 @@
+[Unit]
+Description=ZCode WebUI Server
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/cc_ps/cd_repair_zcode/webui
+ExecStart=/usr/bin/env node webui.js --port 3002 --host 0.0.0.0
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZCode WebUI</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg-card: #161b22;
+      --bg-input: #0d1117;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --success: #3fb950;
+      --error: #f85149;
+      --warning: #d29922;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-bar .badge {
+      background: var(--bg);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .sidebar h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .workspace-item {
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+
+    .workspace-item:hover {
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .workspace-item.active {
+      background: rgba(88, 166, 255, 0.2);
+      color: var(--accent);
+    }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .message {
+      margin-bottom: 16px;
+      max-width: 900px;
+    }
+
+    .message-header {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .message.user .message-content {
+      background: #1c2935;
+      border: 1px solid #2d4a5e;
+    }
+
+    .message.assistant .message-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+
+    .message-content {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message-content code {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: "Monaco", "Menlo", monospace;
+      font-size: 13px;
+    }
+
+    .input-area {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mode-select {
+      background: var(--bg-input);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--bg-input);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      max-height: 150px;
+      min-height: 44px;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    button.send-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button.send-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    button.send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .usage-bar {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .usage-item {
+      display: flex;
+      gap: 4px;
+    }
+
+    .usage-item .value {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .stream-output {
+      font-family: "Monaco", "Menlo", monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      max-height: 100px;
+      overflow-y: auto;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px;
+      display: none;
+    }
+
+    .stream-output.active { display: block; }
+
+    .loading-dots::after {
+      content: '';
+      animation: dots 1.5s steps(4) infinite;
+    }
+
+    @keyframes dots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+      100% { content: ''; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ ZCode WebUI</h1>
+    <div class="status-bar">
+      <span class="badge" id="version-badge">zcode: loading...</span>
+      <span class="badge" id="model-badge">model: cc-glm5-2</span>
+      <span class="badge" id="status-badge">●</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="sidebar">
+      <h3>工作目录</h3>
+      <div id="workspace-list"></div>
+    </div>
+
+    <div class="chat-area">
+      <div class="messages" id="messages">
+        <div class="message assistant">
+          <div class="message-header">ZCode (GLM-5.2 via cc4101)</div>
+          <div class="message-content">你好！我是 ZCode，运行在本机的 GLM-5.2 模型上。有什么可以帮你的？</div>
+        </div>
+      </div>
+
+      <div class="stream-output" id="stream-output"></div>
+
+      <div class="input-area">
+        <div class="usage-bar" id="usage-bar" style="display:none">
+          <div class="usage-item">Input: <span class="value" id="input-tokens">0</span></div>
+          <div class="usage-item">Output: <span class="value" id="output-tokens">0</span></div>
+          <div class="usage-item">Total: <span class="value" id="total-tokens">0</span></div>
+          <div class="usage-item">Context: <span class="value" id="context-window">200K</span></div>
+        </div>
+        <div class="input-row">
+          <select class="mode-select" id="mode-select">
+            <option value="yolo">Yolo (全自动)</option>
+            <option value="build">Build (文件操作需确认)</option>
+            <option value="edit">Edit (只读+编辑)</option>
+            <option value="plan">Plan (只规划)</option>
+          </select>
+          <textarea id="prompt-input" placeholder="输入你的问题... (Ctrl+Enter 发送)" rows="1"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendPrompt()">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let selectedCwd = null;
+    let busy = false;
+
+    function connectWS() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+      ws.onopen = () => {
+        document.getElementById('status-badge').style.color = 'var(--success)';
+        document.getElementById('status-badge').textContent = '● Connected';
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        handleMessage(msg);
+      };
+
+      ws.onclose = () => {
+        document.getElementById('status-badge').style.color = 'var(--error)';
+        document.getElementById('status-badge').textContent = '● Disconnected';
+        setTimeout(connectWS, 3000);
+      };
+
+      ws.onerror = () => {
+        document.getElementById('status-badge').style.color = 'var(--error)';
+      };
+    }
+
+    function handleMessage(msg) {
+      if (msg.type === 'stream') {
+        const el = document.getElementById('stream-output');
+        el.classList.add('active');
+        el.textContent += msg.data;
+        el.scrollTop = el.scrollHeight;
+      } else if (msg.type === 'result') {
+        busy = false;
+        document.getElementById('send-btn').disabled = false;
+        document.getElementById('stream-output').classList.remove('active');
+
+        const data = msg.data;
+        const response = data.response || '(no response)';
+        addMessage('assistant', response);
+
+        // 显示 token 使用
+        if (data.usage) {
+          const bar = document.getElementById('usage-bar');
+          bar.style.display = 'flex';
+          document.getElementById('input-tokens').textContent = data.usage.inputTokens || 0;
+          document.getElementById('output-tokens').textContent = data.usage.outputTokens || 0;
+          document.getElementById('total-tokens').textContent = data.usage.totalTokens || 0;
+        }
+        if (data.projection && data.projection.contextWindow) {
+          document.getElementById('context-window').textContent =
+            (data.projection.contextWindow / 1000) + 'K';
+        }
+      } else if (msg.type === 'error') {
+        busy = false;
+        document.getElementById('send-btn').disabled = false;
+        addMessage('assistant', `Error: ${msg.error}`);
+      }
+    }
+
+    function addMessage(role, content) {
+      const messages = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+
+      const header = document.createElement('div');
+      header.className = 'message-header';
+      header.textContent = role === 'user' ? 'You' : 'ZCode (GLM-5.2)';
+
+      const body = document.createElement('div');
+      body.className = 'message-content';
+      body.textContent = content;
+
+      div.appendChild(header);
+      div.appendChild(body);
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function sendPrompt() {
+      const input = document.getElementById('prompt-input');
+      const text = input.value.trim();
+      if (!text || busy || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+      busy = true;
+      document.getElementById('send-btn').disabled = true;
+      document.getElementById('stream-output').textContent = '';
+      document.getElementById('stream-output').classList.remove('active');
+
+      addMessage('user', text);
+      input.value = '';
+      input.style.height = 'auto';
+
+      const mode = document.getElementById('mode-select').value;
+      ws.send(JSON.stringify({
+        type: 'prompt',
+        prompt: text,
+        cwd: selectedCwd,
+        mode: mode,
+      }));
+    }
+
+    function loadStatus() {
+      fetch('/api/status')
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('version-badge').textContent = `zcode: ${data.zcodeVersion}`;
+        })
+        .catch(() => {});
+
+      fetch('/api/workspaces')
+        .then(r => r.json())
+        .then(data => {
+          const list = document.getElementById('workspace-list');
+          if (data.workspaces) {
+            data.workspaces.forEach(dir => {
+              const item = document.createElement('div');
+              item.className = 'workspace-item';
+              item.textContent = dir.split('/').pop();
+              item.title = dir;
+              item.onclick = () => {
+                document.querySelectorAll('.workspace-item').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+                selectedCwd = dir;
+              };
+              list.appendChild(item);
+            });
+          }
+        })
+        .catch(() => {});
+    }
+
+    // Ctrl+Enter 发送
+    document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        sendPrompt();
+      }
+    });
+
+    // 自动调整 textarea 高度
+    document.getElementById('prompt-input').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    connectWS();
+    loadStatus();
+  </script>
+</body>
+</html>
