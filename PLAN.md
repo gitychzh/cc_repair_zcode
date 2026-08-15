@@ -137,6 +137,6 @@
 5. ✅ 端到端测试 8/8 通过（完成）
 6. ✅ WebUI (port 3002) + TUI 测试（完成）
 7. ⚠️ ChatGPT API (api_ask.py 403; js_ask.py 可用但不稳定)
-8. 🔄 编写文档和脚本
-9. ⬜ Git commit + push
-10. ⬜ ChatGPT 验收
+8. ✅ 编写文档和脚本（完成）
+9. ✅ Git commit + push（完成，已推送至 GitHub）
+10. ⚠️ ChatGPT 验收（API 403 受阻，待修复）
