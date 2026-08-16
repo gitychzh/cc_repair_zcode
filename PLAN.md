@@ -143,4 +143,5 @@
 7. ⚠️ WebUI 弃用（会话不延续、阻塞等待，改用 TUI 替代）
 8. ✅ 编写文档和脚本（完成）
 9. ✅ Git commit + push（完成，已推送至 GitHub）
-10. 🔄 ChatGPT 验收（待用户确认 API 可用后进行）
+10. ✅ ChatGPT 验收通过（PASS with WARN，无 FAIL 项）
+11. ✅ 一键健康检查脚本（healthcheck-zcode.sh，10/10 PASS）
