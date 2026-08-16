@@ -1,97 +1,51 @@
 # ZCode 交互方式
 
-## 可选交互方式
+## 官方推荐：TUI（终端 UI）
 
-| 方式 | URL/端口 | 状态 | 适用场景 |
-|------|----------|------|----------|
-| WebUI | http://<host>:3002 | ✅ 已实现 | 浏览器远程交互 |
-| TUI (SSH) | 终端 | ✅ 可用 | SSH 连接，终端交互 |
-| 飞书 | — | ❌ 不支持 | zcode 无飞书集成 |
+根据 zcode-app-cli 官方 README，TUI 是核心设计的使用方式。zcode-app-cli 提取了 ZCode Desktop 的官方 agent runtime，配合 `@zcode/tui` 实现终端交互界面。
 
-## 方式一：WebUI（推荐）
+### 为什么推荐 TUI
 
-### 启动
+| 特性 | TUI (SSH) | WebUI (浏览器) |
+|------|-----------|----------------|
+| 流式输出 | ✅ 实时流式显示 | ⚠️ 阻塞等待完整响应 |
+| 会话管理 | ✅ 多会话、`/resume`、`/rewind` | ❌ 每次 prompt 独立会话 |
+| 上下文延续 | ✅ 对话上下文保持 | ❌ 无上下文 |
+| 文件操作 | ✅ `@` 引用、inline diff | ❌ 不支持 |
+| 权限审批 | ✅ 交互式审批对话框 | ⚠️ 仅模式切换 |
+| Plugin/Skill | ✅ 完整支持 | ❌ 不支持 |
+| 会话恢复 | ✅ `--resume`/`--continue` | ❌ 不支持 |
+| 配置命令 | ✅ `/status` `/model` `/mode` 等 | ❌ 不支持 |
 
-```bash
-cd /home/opc2_uname/cc_ps/cd_repair_zcode/webui
-node webui.js --port 3002 --host 0.0.0.0
-```
+### 使用方式
 
-### systemd 服务
-
-```bash
-# 安装服务（需 sudo）
-sudo cp zcode-webui.service /etc/systemd/system/zcode-webui@.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now zcode-webui@$(whoami)
-
-# 管理
-sudo systemctl status zcode-webui@$(whoami)
-sudo systemctl restart zcode-webui@$(whoami)
-sudo journalctl -u zcode-webui@$(whoami) -f
-```
-
-### 功能
-
-- **聊天界面**：发送 prompt，显示响应
-- **工作目录选择**：左侧栏列出 ~/cc_ps 下的工作目录
-- **权限模式切换**：Yolo / Build / Edit / Plan
-- **流式输出**：实时显示 zcode 命令输出
-- **Token 统计**：显示 input/output/total tokens 和 context window
-- **WebSocket 连接**：自动重连
-
-### API 端点
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/` | GET | WebUI 前端 (index.html) |
-| `/api/status` | GET | 系统状态（版本、时间戳） |
-| `/api/workspaces` | GET | 工作目录列表 |
-| `/ws` | WebSocket | Prompt 执行（双向流式） |
-
-### WebSocket 协议
-
-**发送**：
-```json
-{
-  "type": "prompt",
-  "prompt": "你的问题",
-  "cwd": "/path/to/workspace",
-  "mode": "yolo"
-}
-```
-
-**接收**：
-```json
-// 流式输出
-{"type": "stream", "data": "..."}
-
-// 最终结果
-{"type": "result", "data": {"response": "...", "usage": {...}, "projection": {...}}}
-
-// 错误
-{"type": "error", "error": "..."}
-```
-
-## 方式二：TUI（SSH）
-
-### 直接 SSH + TUI
+#### 直接 SSH + TUI
 
 ```bash
 # SSH 连接到服务器
 ssh user@server
 
-# 启动 TUI
+# 启动 TUI（默认命令）
 zcode
+
+# 在 TUI 中：
+# - 直接输入 prompt 回车发送
+# - Shift+Tab 切换权限模式 (build → edit → yolo → plan)
+# - Ctrl+N 切换模型
+# - /help 查看命令
+# - /model 查看/切换模型
+# - /mode 查看/切换权限
+# - /status 查看运行状态
+# - /exit 退出
 ```
 
-### 在 tmux 中运行（推荐）
+#### 在 tmux 中运行（推荐）
 
 ```bash
 # 启动 tmux 会话
 tmux new -s zcode
 
-# 在 tmux 中启动
+# 在 tmux 中启动 zcode
 zcode
 
 # 断开（保留会话）
@@ -101,10 +55,31 @@ zcode
 tmux attach -s zcode
 ```
 
-### Headless 模式
+### TUI 核心功能
+
+- **流式输出**：实时显示 GLM-5.2 的流式回复
+- **CJK 编辑器**：多行编辑，支持中文输入
+- **`@` 文件引用**：输入 `@` 弹出工作目录文件补全
+- **`$` Skill 调用**：输入 `$` 弹出 Skill 选择器
+- **`/` 斜杠命令**：`/help`、`/model`、`/mode`、`/status`、`/diff`、`/context` 等
+- **会话管理**：`/resume` 恢复会话、双击 Esc 回溯对话
+- **附件**：Ctrl+V 粘贴图片
+- **Markdown 渲染**：语法高亮代码块、Mermaid 图表
+- **Active-turn steering**：运行中按 Enter 追加指令
+
+### 权限模式
+
+| 模式 | 说明 | 适用场景 |
+|------|------|----------|
+| `build` | 文件操作需确认（默认） | 日常开发 |
+| `edit` | 只读 + 编辑 | 代码审查 |
+| `plan` | 只规划不执行 | 方案设计 |
+| `yolo` | 全自动无确认 | 脚本/自动化 |
+
+## Headless 模式（脚本/自动化）
 
 ```bash
-# 单次 prompt
+# 单次 prompt（JSON 输出）
 zcode --prompt "你的问题" --mode yolo --json
 
 # 指定工作目录
@@ -119,16 +94,25 @@ zcode --continue
 # 最大轮次限制
 zcode --prompt "复杂任务" --max-turns 10
 
-# 导出 JSON
-zcode --prompt "生成 JSON" --json
+# 设置会话目标
+zcode --prompt "实现功能" --target "完成 XXX 模块" --mode build
 ```
 
-## 方式三：飞书
+## WebUI（已弃用）
 
-ZCode 目前不提供飞书（Lark）机器人集成。如需飞书交互，需要自行开发中间层：
+WebUI 之前作为浏览器交互方案部署在端口 3002，但存在以下限制：
 
-1. 使用飞书开放平台 API 创建机器人
-2. 机器人接收消息后调用 `zcode --prompt`
-3. 将 zcode 响应返回飞书
+- 每次 prompt 启动新的 zcode 进程，**无会话上下文延续**
+- `zcode --prompt` 是同步阻塞模式，响应需要 30-60 秒
+- 不支持 TUI 的流式输出、文件引用、Skill/Plugin 等功能
+- WebSocket 缺少心跳保活，长时间等待可能断连
 
-这属于未来扩展方向，不在当前项目范围内。
+**推荐替代方案**：通过 SSH + TUI 使用完整功能。
+
+如仍需 WebUI 代码作为参考，`webui/` 目录保留但不再推荐使用。
+
+## 环境要求
+
+- **Node.js** ≥ 22.19（当前 v24.15.0）
+- **终端**：支持 ANSI 256 色的终端（SSH 直连即可）
+- **tmux**（可选）：用于持久化会话

@@ -60,21 +60,25 @@
 
 ### 阶段 2: 交互方式配置
 
-**优先级**: WebUI > TUI (SSH)
+**最终结论**: TUI (SSH) 为官方推荐方式，WebUI 弃用
 
-1. **WebUI 方案评估**
-   - 现有 cc_webui (CloudCLI UI) 当前服务 Claude Code, 架构是 Vite + Node server
-   - 方案 A: 为 ZCode 独立部署一个 WebUI 实例（端口 3002），配置 `CLAUDE_CLI_PATH` 指向 zcode 二进制，`ANTHROPIC_BASE_URL` 指向 cc4101
-   - 方案 B: 直接使用 zcode CLI 的 TUI 模式（SSH 直连）
-
-2. **TUI 方案（兜底，已确认可行）**
+1. **TUI 方案（官方推荐，已验证可行）**
    - SSH 连接后直接运行 `zcode` 进入 TUI
-   - 验证: `/model` 确认模型、`/status` 确认运行状态、发送测试 prompt
+   - 功能最完整：流式输出、会话管理、`@` 文件引用、`$` Skill、`/` 命令
+   - 验证: TUI 启动正常，模型 `zai/cc-glm5-2` 加载，权限模式 `build`
+   - 推荐配合 tmux 持久化会话
 
-3. **测试和调试**
-   - WebUI: 浏览器访问 → 发送 prompt → 查看 GLM-5.2 响应
-   - TUI: SSH → `zcode` → 发送 prompt → 确认流式输出
-   - 记录两种方式的优缺点
+2. **WebUI 方案（已弃用）**
+   - 之前在端口 3002 部署了 Express + WebSocket WebUI
+   - 后端功能正常（WebSocket 测试通过），但存在根本限制：
+     - 每次 prompt 启动新 zcode 进程，无会话上下文延续
+     - `zcode --prompt` 同步阻塞，响应需 30-60 秒
+     - 不支持 TUI 的流式输出、文件引用、Skill/Plugin
+   - 代码保留在 `webui/` 目录作参考，不再推荐使用
+
+3. **Headless 模式（脚本/自动化）**
+   - `zcode --prompt "xxx" --mode yolo --json` 用于脚本和自动化
+   - 支持 `--cwd`、`--attach`、`--resume`、`--max-turns` 等参数
 
 ### 阶段 3: ChatGPT 协作
 
@@ -135,8 +139,8 @@
 3. ✅ 安装 zcode-app-cli v3.7.7-13（完成）
 4. ✅ 配置 cc4101 作为自定义 provider（完成）
 5. ✅ 端到端测试 8/8 通过（完成）
-6. ✅ WebUI (port 3002) + TUI 测试（完成）
-7. ⚠️ ChatGPT API (api_ask.py 403; js_ask.py 可用但不稳定)
+6. ✅ TUI 验证通过（官方推荐方式，功能最完整）
+7. ⚠️ WebUI 弃用（会话不延续、阻塞等待，改用 TUI 替代）
 8. ✅ 编写文档和脚本（完成）
 9. ✅ Git commit + push（完成，已推送至 GitHub）
-10. ⚠️ ChatGPT 验收（API 403 受阻，待修复）
+10. 🔄 ChatGPT 验收（待用户确认 API 可用后进行）
